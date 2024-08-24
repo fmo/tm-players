@@ -73,12 +73,11 @@ func NewPlayersApi(l *logrus.Logger) PlayersApi {
 }
 
 func (p PlayersApi) GetPlayers(season, teamId int) []Player {
-	url := fmt.Sprintf("https://transfermarkt-db.p.rapidapi.com/v1/clubs/squad?season_id=%d&locale=UK&club_id=%d",
-		season,
-		teamId,
-	)
-
-	response := RapidRequest(url)
+	response := RapidRequest(
+		fmt.Sprintf("https://transfermarkt-db.p.rapidapi.com/v1/clubs/squad?season_id=%d&locale=UK&club_id=%d",
+			season,
+			teamId,
+		))
 
 	var playerResponse Data
 	if err := json.Unmarshal(response, &playerResponse); err != nil {
@@ -95,7 +94,7 @@ func (p PlayersApi) GetPlayers(season, teamId int) []Player {
 
 	p.logger.WithFields(logrus.Fields{
 		"firstThreeNames": playerNames,
-	}).Info("rapid api response summary with player names")
+	}).Info("Rapid api response summary with player names")
 
 	return playerResponse.Players
 }

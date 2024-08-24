@@ -42,7 +42,7 @@ func (p *Publisher) Publish(data interface{}) {
 		"payload":    string(payload[:30]),
 		"sourceFile": "publish.go",
 		"function":   "publish",
-	}).Info("publishing message")
+	}).Info("Publishing message")
 
 	err = p.kafkaWriter.WriteMessages(context.Background(), kafka.Message{Value: payload})
 	if err != nil {

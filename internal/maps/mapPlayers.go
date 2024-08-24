@@ -24,9 +24,7 @@ func (m MapPlayersObj) MapPlayers(players []rapidapi.Player, returnPlayer *[]*pb
 
 	m.logger.WithFields(logrus.Fields{
 		"playerCountToMap": len(players),
-		"sourceFile":       "mapPlayers",
-		"function":         "MapPlayers",
-	}).Info("mapping starting, number of players will be mapped")
+	}).Info("Mapping starting...")
 
 	for _, p := range players {
 		player := &pb.Player{

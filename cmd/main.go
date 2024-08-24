@@ -29,7 +29,7 @@ var Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var players []*pb.Player
 
-		log.Info("starting player command")
+		log.Info("Starting player command")
 
 		r := rapidapi.NewPlayersApi(log)
 		rapidPlayers := r.GetPlayers(season, teamId)
