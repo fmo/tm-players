@@ -35,6 +35,7 @@ func (m MapPlayersObj) MapPlayers(players []rapidapi.Player, returnPlayer *[]*pb
 			MarketValueCurrency: p.MarketValue.Currency,
 			TeamId:              int32(teamId),
 			Position:            p.Positions.First.Name,
+			Age:                 int32(p.Age),
 		}
 
 		*returnPlayer = append(*returnPlayer, player)
