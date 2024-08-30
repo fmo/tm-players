@@ -14,3 +14,8 @@ Barcelona
 ```
 ./tmPlayersApp players --season 2024 --teamId 131
 ```
+
+Man United
+```
+./tmPlayersApp players --season 2024 --teamId 985
+```
