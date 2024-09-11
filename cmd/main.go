@@ -1,43 +1,39 @@
-package cmd
+package main
 
 import (
-	pb "github.com/fmo/football-proto/golang/player"
-	"github.com/fmo/tm-players/internal/kafka"
-	"github.com/fmo/tm-players/internal/maps"
-	"github.com/fmo/tm-players/internal/rapidapi"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"context"
+	"github.com/fmo/tm-players/config"
+	"github.com/fmo/tm-players/internal/adapters/cli"
+	"github.com/fmo/tm-players/internal/adapters/database/dynamodb"
+	"github.com/fmo/tm-players/internal/adapters/player-data/transfermarkt"
+	"github.com/fmo/tm-players/internal/application/core/api"
+	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
-var teamId int
-var season int
+func main() {
+	environment := os.Getenv("ENVIRONMENT")
+	if environment != "production" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file")
+		}
+	}
 
-var log = logrus.New()
+	ctx := context.Background()
 
-func init() {
-	Cmd.Flags().IntVarP(&teamId, "teamId", "t", 36, "Team Id")
-	Cmd.Flags().IntVarP(&season, "season", "s", 2024, "Season")
+	playerAdapter, err := transfermarkt.NewAdapter(config.GetRapidApiKey())
+	if err != nil {
+		log.Fatalf("Failed to connect to transfermarkt. Error: %v", err)
+	}
 
-	log.Out = os.Stdout
-	log.Level = logrus.DebugLevel
-}
+	dbAdapter, err := dynamodb.NewAdapter(config.GetDynamoDbTableName())
+	if err != nil {
+		log.Fatalf("Failed to connect to database. Error: %v", err)
+	}
 
-var Cmd = &cobra.Command{
-	Use:   "players",
-	Short: "Get players from Transfermarkt",
-	Run: func(cmd *cobra.Command, args []string) {
-		var players []*pb.Player
-
-		log.Info("Starting player command")
-
-		r := rapidapi.NewPlayersApi(log)
-		rapidPlayers := r.GetPlayers(season, teamId)
-
-		m := maps.NewMapPlayers(log)
-		m.MapPlayers(rapidPlayers, &players, teamId)
-
-		publisher := kafka.NewPublisher(log, os.Getenv("KAFKA_TOPIC_PLAYERS"))
-		publisher.Publish(players)
-	},
+	application := api.NewApplication(playerAdapter, dbAdapter)
+	cliAdapter := cli.NewAdapter(application)
+	cliAdapter.Run(ctx)
 }

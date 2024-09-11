@@ -1,4 +1,4 @@
-package rapidapi
+package transfermarkt
 
 import (
 	"context"
@@ -6,28 +6,27 @@ import (
 	"fmt"
 	"github.com/fmo/tm-players/internal/application/core/domain"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"time"
 )
+
+type Adapter struct {
+	rapidApiKey string
+}
+
+func NewAdapter(rapidApiKey string) (*Adapter, error) {
+	return &Adapter{
+		rapidApiKey: rapidApiKey,
+	}, nil
+}
 
 type Data struct {
 	Players []domain.Player `json:"data"`
 }
 
-type PlayersApi struct {
-	logger *logrus.Logger
-}
-
-func NewPlayersApi(l *logrus.Logger) PlayersApi {
-	return PlayersApi{
-		logger: l,
-	}
-}
-
-func (p PlayersApi) GetPlayers(season, teamId int) []domain.Player {
+func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Player {
 	url := fmt.Sprintf("https://transfermarkt-db.p.rapidapi.com/v1/clubs/squad?season_id=%d&locale=UK&club_id=%d",
 		season,
 		teamId,
@@ -41,7 +40,7 @@ func (p PlayersApi) GetPlayers(season, teamId int) []domain.Player {
 		log.Fatalf("Failed to create request: %v", err)
 	}
 
-	req.Header.Add("X-RapidAPI-Key", os.Getenv("RAPID_API_KEY"))
+	req.Header.Add("X-RapidAPI-Key", a.rapidApiKey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -67,7 +66,7 @@ func (p PlayersApi) GetPlayers(season, teamId int) []domain.Player {
 		playerNames = append(playerNames, p.Name)
 	}
 
-	p.logger.WithFields(logrus.Fields{
+	log.WithFields(logrus.Fields{
 		"firstThreeNames": playerNames,
 	}).Info("Rapid api response summary with player names")
 
