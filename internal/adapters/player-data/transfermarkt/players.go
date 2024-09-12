@@ -22,8 +22,60 @@ func NewAdapter(rapidApiKey string) (*Adapter, error) {
 	}, nil
 }
 
+type Player struct {
+	Height        string        `json:"height"`
+	Foot          string        `json:"foot"`
+	Injury        interface{}   `json:"injury"`
+	Suspension    interface{}   `json:"suspension"`
+	Joined        interface{}   `json:"joined"`
+	ContractUntil interface{}   `json:"contractUntil"`
+	Captain       bool          `json:"captain"`
+	LastClub      interface{}   `json:"lastClub"`
+	IsLoan        interface{}   `json:"isLoan"`
+	WasLoan       interface{}   `json:"wasLoan"`
+	ID            string        `json:"id"`
+	Name          string        `json:"name"`
+	Image         string        `json:"image"`
+	ImageLarge    interface{}   `json:"imageLarge"`
+	ImageSource   string        `json:"imageSource"`
+	ShirtNumber   string        `json:"shirtNumber"`
+	Age           int           `json:"age"`
+	DateOfBirth   int64         `json:"dateOfBirth"`
+	HeroImage     string        `json:"heroImage"`
+	IsGoalkeeper  bool          `json:"isGoalkeeper"`
+	Positions     Positions     `json:"positions"`
+	Nationalities []Nationality `json:"nationalities"`
+	MarketValue   MarketValue   `json:"marketValue"`
+	TeamId        int           `json:"teamId"`
+}
+
+type Positions struct {
+	First  Position  `json:"first"`
+	Second *Position `json:"second"`
+	Third  *Position `json:"third"`
+}
+
+type Position struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	ShortName string `json:"shortName"`
+	Group     string `json:"group"`
+}
+
+type Nationality struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
+type MarketValue struct {
+	Value       int         `json:"value"`
+	Currency    string      `json:"currency"`
+	Progression interface{} `json:"progression"`
+}
+
 type Data struct {
-	Players []domain.Player `json:"data"`
+	Players []Player `json:"data"`
 }
 
 func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Player {
@@ -66,13 +118,20 @@ func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Pl
 		playerNames = append(playerNames, p.Name)
 	}
 
-	for i := range playerResponse.Players {
-		playerResponse.Players[i].TeamId = teamId
+	var domainPlayer []domain.Player
+
+	for _, p := range playerResponse.Players {
+		p := domain.Player{
+			TeamId: teamId,
+			Name:   p.Name,
+			ID:     p.ID,
+		}
+		domainPlayer = append(domainPlayer, p)
 	}
 
 	log.WithFields(logrus.Fields{
 		"firstThreeNames": playerNames,
 	}).Info("Rapid api response summary with player names")
 
-	return playerResponse.Players
+	return domainPlayer
 }
