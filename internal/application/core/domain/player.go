@@ -24,6 +24,7 @@ type Player struct {
 	Positions     Positions     `json:"positions"`
 	Nationalities []Nationality `json:"nationalities"`
 	MarketValue   MarketValue   `json:"marketValue"`
+	TeamId        int           `json:"teamId"`
 }
 
 type Positions struct {

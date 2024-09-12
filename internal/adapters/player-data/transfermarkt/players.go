@@ -66,6 +66,10 @@ func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Pl
 		playerNames = append(playerNames, p.Name)
 	}
 
+	for i := range playerResponse.Players {
+		playerResponse.Players[i].TeamId = teamId
+	}
+
 	log.WithFields(logrus.Fields{
 		"firstThreeNames": playerNames,
 	}).Info("Rapid api response summary with player names")
