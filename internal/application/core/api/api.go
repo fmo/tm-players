@@ -35,6 +35,7 @@ func (a Application) SavePlayer(ctx context.Context, season, teamId int) error {
 			log.Info("Found squad for team %s in Redis returning response", teamId)
 		}
 	} else {
+		log.Info("Getting player data from rapidapi")
 		players = a.playerData.GetPlayers(ctx, season, teamId)
 		jsonSquad, err := json.Marshal(players)
 		if err == nil {
