@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fmo/tm-players/internal/application/core/domain"
+	"github.com/fmo/tm-players/internal/ports"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -14,11 +15,13 @@ import (
 
 type Adapter struct {
 	rapidApiKey string
+	cache       ports.CachePort
 }
 
-func NewAdapter(rapidApiKey string) (*Adapter, error) {
+func NewAdapter(rapidApiKey string, cache ports.CachePort) (*Adapter, error) {
 	return &Adapter{
 		rapidApiKey: rapidApiKey,
+		cache:       cache,
 	}, nil
 }
 
@@ -79,54 +82,75 @@ type Data struct {
 }
 
 func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Player {
-	url := fmt.Sprintf("https://transfermarkt-db.p.rapidapi.com/v1/clubs/squad?season_id=%d&locale=UK&club_id=%d",
-		season,
-		teamId,
-	)
+	cacheKey := fmt.Sprintf("tm:players:squad:%d", teamId)
+	squadData, err := a.cache.Get(ctx, cacheKey)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	var players []Player
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		log.Fatalf("Failed to create request: %v", err)
-	}
-
-	req.Header.Add("X-RapidAPI-Key", a.rapidApiKey)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatalf("Request failed: %v", err)
-	}
-	defer res.Body.Close()
-
-	response, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatalf("Failed to read response body: %v", err)
-	}
-
-	var playerResponse Data
-	if err := json.Unmarshal(response, &playerResponse); err != nil {
-		log.Fatalf("error unmarshalling json: %v\n", err)
-	}
-
-	playerNames := make([]string, 0, 3)
-	for i, p := range playerResponse.Players {
-		if i >= 3 {
-			break
+	if err == nil && squadData != "" {
+		err = json.Unmarshal([]byte(squadData), &players)
+		if err == nil {
+			log.Info("Found squad for team %s in Redis returning response", teamId)
+		} else {
+			log.Error(err)
 		}
-		playerNames = append(playerNames, p.Name)
+	} else {
+		url := fmt.Sprintf("https://transfermarkt-db.p.rapidapi.com/v1/clubs/squad?season_id=%d&locale=UK&club_id=%d",
+			season,
+			teamId,
+		)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			log.Fatalf("Failed to create request: %v", err)
+		}
+
+		req.Header.Add("X-RapidAPI-Key", a.rapidApiKey)
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Fatalf("Request failed: %v", err)
+		}
+		defer res.Body.Close()
+
+		response, err := io.ReadAll(res.Body)
+		if err != nil {
+			log.Fatalf("Failed to read response body: %v", err)
+		}
+
+		var playerResponse Data
+		if err := json.Unmarshal(response, &playerResponse); err != nil {
+			log.Fatalf("error unmarshalling json: %v\n", err)
+		}
+
+		players = playerResponse.Players
+
+		jsonSquad, err := json.Marshal(players)
+		if err == nil {
+			a.cache.Set(ctx, cacheKey, jsonSquad, 240*time.Hour)
+		}
 	}
 
 	var domainPlayer []domain.Player
 
-	for _, p := range playerResponse.Players {
+	for _, p := range players {
 		p := domain.Player{
 			TeamId: teamId,
 			Name:   p.Name,
 			ID:     p.ID,
 		}
 		domainPlayer = append(domainPlayer, p)
+	}
+
+	playerNames := make([]string, 0, 3)
+	for i, p := range players {
+		if i >= 3 {
+			break
+		}
+		playerNames = append(playerNames, p.Name)
 	}
 
 	log.WithFields(logrus.Fields{

@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("Failed to connect to redis. Error: %v", err)
 	}
 
-	playerAdapter, err := transfermarkt.NewAdapter(config.GetRapidApiKey())
+	playerAdapter, err := transfermarkt.NewAdapter(config.GetRapidApiKey(), cacheAdapter)
 	if err != nil {
 		log.Fatalf("Failed to connect to transfermarkt. Error: %v", err)
 	}
@@ -39,7 +39,7 @@ func main() {
 		log.Fatalf("Failed to connect to database. Error: %v", err)
 	}
 
-	application := api.NewApplication(playerAdapter, dbAdapter, cacheAdapter)
+	application := api.NewApplication(playerAdapter, dbAdapter)
 	cliAdapter := cli.NewAdapter(application)
 	cliAdapter.Run(ctx)
 }
