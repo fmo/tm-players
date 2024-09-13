@@ -27,12 +27,15 @@ func NewApplication(playerData ports.PlayerData, database ports.DBPort, cache po
 func (a Application) SavePlayer(ctx context.Context, season, teamId int) error {
 	cacheKey := fmt.Sprintf("tm:players:squad:%d", teamId)
 	squadData, err := a.cache.Get(ctx, cacheKey)
+
 	var players []domain.Player
 
-	if err == nil {
+	if err == nil && squadData != "" {
 		err = json.Unmarshal([]byte(squadData), &players)
 		if err == nil {
 			log.Info("Found squad for team %s in Redis returning response", teamId)
+		} else {
+			log.Error(err)
 		}
 	} else {
 		log.Info("Getting player data from rapidapi")
