@@ -9,3 +9,11 @@ func GetRapidApiKey() string {
 func GetDynamoDbTableName() string {
 	return os.Getenv("TABLE_NAME")
 }
+
+func GetRedisAddr() string {
+	return os.Getenv("REDIS_ADDR")
+}
+
+func GetRedisPassword() string {
+	return os.Getenv("REDIS_PASSWORD")
+}

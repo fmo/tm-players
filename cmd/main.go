@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/fmo/tm-players/config"
+	"github.com/fmo/tm-players/internal/adapters/cache/redis"
 	"github.com/fmo/tm-players/internal/adapters/cli"
 	"github.com/fmo/tm-players/internal/adapters/database/dynamodb"
 	"github.com/fmo/tm-players/internal/adapters/player-data/transfermarkt"
@@ -23,6 +24,11 @@ func main() {
 
 	ctx := context.Background()
 
+	cacheAdapter, err := redis.NewAdapter(config.GetRedisAddr(), config.GetRedisPassword())
+	if err != nil {
+		log.Fatalf("Failed to connect to redis. Error: %v", err)
+	}
+
 	playerAdapter, err := transfermarkt.NewAdapter(config.GetRapidApiKey())
 	if err != nil {
 		log.Fatalf("Failed to connect to transfermarkt. Error: %v", err)
@@ -33,7 +39,7 @@ func main() {
 		log.Fatalf("Failed to connect to database. Error: %v", err)
 	}
 
-	application := api.NewApplication(playerAdapter, dbAdapter)
+	application := api.NewApplication(playerAdapter, dbAdapter, cacheAdapter)
 	cliAdapter := cli.NewAdapter(application)
 	cliAdapter.Run(ctx)
 }
