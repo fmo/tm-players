@@ -138,10 +138,11 @@ func (a Adapter) GetPlayers(ctx context.Context, season, teamId int) []domain.Pl
 
 	for _, p := range players {
 		p := domain.Player{
-			TeamId: teamId,
-			Name:   p.Name,
-			ID:     p.ID,
-			Age:    p.Age,
+			TeamId:   teamId,
+			Name:     p.Name,
+			ID:       p.ID,
+			Age:      p.Age,
+			Position: p.Positions.First.Name,
 		}
 		domainPlayer = append(domainPlayer, p)
 	}
